@@ -8,17 +8,20 @@ import br.edu.ifsp.scl.tradutorsdmkt.MainActivity.Constantes.END_POINT
 import br.edu.ifsp.scl.tradutorsdmkt.MainActivity.Constantes.URL_BASE
 import br.edu.ifsp.scl.tradutorsdmkt.MainActivity.codigosMensagen.RESPOSTA_TRADUCAO
 import br.edu.ifsp.scl.tradutorsdmkt.model.Resposta
+import br.edu.ifsp.scl.tradutorsdmkt.model.Translation
 import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.Response
 import com.android.volley.VolleyError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
-import com.google.gson.Gson
+import com.google.gson.*
+import com.google.gson.reflect.TypeToken
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.design.snackbar
 import org.json.JSONException
 import org.json.JSONObject
+import java.lang.reflect.Type
 
 class Tradutor(val mainActivity: MainActivity) {
     fun traduzir(palavraOrigem: String, idiomaOrigem: String, idiomaDestino: String) {
@@ -62,7 +65,7 @@ class Tradutor(val mainActivity: MainActivity) {
      *  Complexidade de O(N^5). Pode causar problemas de desempenho com
      *  respostas muito grandes
      * */
-    inner class RespostaListener : Response.Listener<JSONObject> {
+    /*inner class RespostaListener : Response.Listener<JSONObject> {
         override fun onResponse(response: JSONObject?) {
             try {
                 val gson: Gson = Gson()  // Cria um objeto Gson que consegue fazer reflexão de um Json para Data Class
@@ -89,6 +92,24 @@ class Tradutor(val mainActivity: MainActivity) {
                     traduzidoSb.toString().substringBeforeLast(',')
                 ).sendToTarget()
             } catch (jse: JSONException) {
+                mainActivity.mainLl.snackbar("Erro na conversão JSON")
+            }
+        }
+    }*/
+
+    /* Trata a resposta de uma requisição quando o acesso ao WS foi realizado. Usa um Desserializador O(N^2) */
+    inner class RespostaListener : Response.Listener<JSONObject> {
+        override fun onResponse(response: JSONObject?) {
+            try {
+                val gsonBuilder: GsonBuilder = GsonBuilder() // Usa um builder que usa o desserializador personalizado para criar um objeto Gson
+                val listTranslationType = object : TypeToken<List<Translation>>() {}.type // Usa reflexão para extrair o tipo da classe de um List<Translation>
+                gsonBuilder.registerTypeAdapter(listTranslationType, TranslationListDeserializer()) // Seta o desserializador personalizado no builder
+                val listTranslation: List<Translation> =  // Usa o builder para criar um Gson e usa o Gson para converter o Json de resposta numa lista de
+                    gsonBuilder.create().fromJson(response.toString(), listTranslationType) //Translation usando o desserializador personalizado.
+                val listTranslationString: StringBuffer = StringBuffer() // Extrai somente o texto dos objetos Translation
+                listTranslation.forEach { listTranslationString.append("${it.text}, ") }
+                mainActivity.tradutoHandler.obtainMessage(RESPOSTA_TRADUCAO, listTranslationString.toString().substringBeforeLast(',')).sendToTarget()
+            } catch (je: JSONException) {
                 mainActivity.mainLl.snackbar("Erro na conversão JSON")
             }
         }

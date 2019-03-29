@@ -20,9 +20,9 @@ class MainActivity : AppCompatActivity() {
         val URL_BASE = "https://od-api.oxforddictionaries.com/api/v1/"
         val END_POINT = "entries"
         val APP_ID_FIELD = "app_id"
-        val APP_ID_VALUE = "PREENCHER_COM_SEU_APP_ID" // Preencher com seu app_id
+        val APP_ID_VALUE = "" // Preencher com seu app_id
         val APP_KEY_FIELD = "app_key"
-        val APP_KEY_VALUE = "PREENCHER_COM_SEU_APP_KEY" // Preeencher com seu app_key
+        val APP_KEY_VALUE = "" // Preeencher com seu app_key
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
