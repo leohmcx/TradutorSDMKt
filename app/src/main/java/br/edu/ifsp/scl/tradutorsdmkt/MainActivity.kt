@@ -6,6 +6,8 @@ import android.os.Message
 import android.support.v7.app.AppCompatActivity
 import android.widget.ArrayAdapter
 import br.edu.ifsp.scl.tradutorsdmkt.MainActivity.codigosMensagen.RESPOSTA_TRADUCAO
+//import br.edu.ifsp.scl.tradutorsdmkt.volley.Tradutor
+import br.edu.ifsp.scl.tradutorsdmkt.retrofit.Tradutor
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.design.snackbar
 

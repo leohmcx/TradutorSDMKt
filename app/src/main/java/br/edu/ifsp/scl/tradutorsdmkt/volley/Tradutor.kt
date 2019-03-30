@@ -1,5 +1,7 @@
-package br.edu.ifsp.scl.tradutorsdmkt
+package br.edu.ifsp.scl.tradutorsdmkt.volley
 
+import android.util.Log
+import br.edu.ifsp.scl.tradutorsdmkt.MainActivity
 import br.edu.ifsp.scl.tradutorsdmkt.MainActivity.Constantes.APP_ID_FIELD
 import br.edu.ifsp.scl.tradutorsdmkt.MainActivity.Constantes.APP_ID_VALUE
 import br.edu.ifsp.scl.tradutorsdmkt.MainActivity.Constantes.APP_KEY_FIELD
@@ -7,6 +9,7 @@ import br.edu.ifsp.scl.tradutorsdmkt.MainActivity.Constantes.APP_KEY_VALUE
 import br.edu.ifsp.scl.tradutorsdmkt.MainActivity.Constantes.END_POINT
 import br.edu.ifsp.scl.tradutorsdmkt.MainActivity.Constantes.URL_BASE
 import br.edu.ifsp.scl.tradutorsdmkt.MainActivity.codigosMensagen.RESPOSTA_TRADUCAO
+import br.edu.ifsp.scl.tradutorsdmkt.R
 import br.edu.ifsp.scl.tradutorsdmkt.model.Resposta
 import br.edu.ifsp.scl.tradutorsdmkt.model.Translation
 import com.android.volley.Request
@@ -15,13 +18,18 @@ import com.android.volley.Response
 import com.android.volley.VolleyError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
-import com.google.gson.*
-import com.google.gson.reflect.TypeToken
+import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.design.snackbar
 import org.json.JSONException
 import org.json.JSONObject
-import java.lang.reflect.Type
+import java.lang.reflect.Method
+import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
+import kotlin.reflect.full.createInstance
+import kotlin.reflect.full.declaredMemberExtensionProperties
+import kotlin.reflect.full.declaredMemberProperties
+import kotlin.reflect.full.functions
 
 class Tradutor(val mainActivity: MainActivity) {
     fun traduzir(palavraOrigem: String, idiomaOrigem: String, idiomaDestino: String) {
@@ -59,20 +67,16 @@ class Tradutor(val mainActivity: MainActivity) {
         filaRequisicaoTraducao.add(traducaoJORequest)
     }
 
-
     /**
      *  Trata a resposta de uma requisição quando o acesso ao WS foi realizado.
      *  Complexidade de O(N^5). Pode causar problemas de desempenho com
      *  respostas muito grandes
      * */
-    /*inner class RespostaListener : Response.Listener<JSONObject> {
+    inner class RespostaListener : Response.Listener<JSONObject> {
         override fun onResponse(response: JSONObject?) {
             try {
                 val gson: Gson = Gson()  // Cria um objeto Gson que consegue fazer reflexão de um Json para Data Class
-                val resposta: Resposta = gson.fromJson(
-                    response.toString(),
-                    Resposta::class.java
-                ) // Reflete a resposta (que é um Json) num objeto da classe Resposta
+                val resposta: Resposta = gson.fromJson(response.toString(), Resposta::class.java) // Reflete a resposta (que é um Json) num objeto da classe Resposta
                 var traduzidoSb = StringBuffer() // StringBuffer para armazenar o resultado das traduções
                 // Parseando o objeto e adicionando as traduções ao StringBuffer, O(N^5)
                 resposta.results?.forEach {
@@ -81,23 +85,59 @@ class Tradutor(val mainActivity: MainActivity) {
                             it?.senses?.forEach {
                                 it?.translations?.forEach {
                                     traduzidoSb.append("${it?.text}, ")
+
+                                    // Reflexão de classe Java e Kotlin
+                                    val clTransJ: Class<Translation> = Translation::class.java
+                                    val clTransK: KClass<Translation> = clTransJ.kotlin
+
+                                    // Classes
+                                    Log.v(mainActivity.getString(R.string.app_name), "Nome da Classe Java: ${clTransJ.name}")
+                                    Log.v(mainActivity.getString(R.string.app_name), "Nome da Classe Kotlin: ${clTransK.qualifiedName}")
+
+                                    // Atributos e propriedades
+                                    clTransJ.declaredFields.forEach {
+                                        Log.v(mainActivity.getString(R.string.app_name), "Nome e tipo do atributo java: ${it.name}, ${it.type}")
+                                    }
+
+                                    clTransK.declaredMemberExtensionProperties.forEach {
+                                        Log.v(mainActivity.getString(R.string.app_name), "Nome e tipo da propriedade Kotlin: ${it.name}, ${it.returnType}")
+                                    }
+
+                                    // Métodos e Funções.
+                                    clTransJ.declaredMethods.forEach {
+                                        Log.v(mainActivity.getString(R.string.app_name), "Nome e tipo do método java: ${it.name}, ${it.returnType}")
+                                    }
+
+                                    clTransK.functions.forEach {
+                                        Log.v(mainActivity.getString(R.string.app_name), "Nome e tipo da função Kotlin: ${it.name}, ${it.returnType}")
+                                    }
+
+                                    val objTransJ: Translation = clTransJ.newInstance()
+                                    val objTransK: Translation = clTransK.createInstance()
+
+                                    objTransJ.text = "Teste Java"
+                                    objTransK.text = "Teste Kotlin"
+
+                                    val getTextJ: Method = clTransJ.getDeclaredMethod("getText")
+                                    val getTextK: KProperty1.Getter<Translation, Any?> = clTransK.declaredMemberProperties.single{ it.name == "text"}.getter
+
+                                    // Classes
+                                    //Log.v(mainActivity.getString(R.string.app_name), "Invocando metodo Java: ${getTextJ.invoke(clTransJ)}")
+                                    //Log.v(mainActivity.getString(R.string.app_name), "Invocando função Kotlin: ${getTextK.call(clTransK)}")
                                 }
                             }
                         }
                     }
                 }
                 // Enviando as tradução ao Handler da thread de UI para serem mostrados na tela
-                mainActivity.tradutoHandler.obtainMessage(
-                    RESPOSTA_TRADUCAO,
-                    traduzidoSb.toString().substringBeforeLast(',')
-                ).sendToTarget()
+                mainActivity.tradutoHandler.obtainMessage(RESPOSTA_TRADUCAO, traduzidoSb.toString().substringBeforeLast(',')).sendToTarget()
             } catch (jse: JSONException) {
                 mainActivity.mainLl.snackbar("Erro na conversão JSON")
             }
         }
-    }*/
+    }
 
-    /* Trata a resposta de uma requisição quando o acesso ao WS foi realizado. Usa um Desserializador O(N^2) */
+    /* Trata a resposta de uma requisição quando o acesso ao WS foi realizado. Usa um Desserializador O(N^2)
     inner class RespostaListener : Response.Listener<JSONObject> {
         override fun onResponse(response: JSONObject?) {
             try {
@@ -113,7 +153,7 @@ class Tradutor(val mainActivity: MainActivity) {
                 mainActivity.mainLl.snackbar("Erro na conversão JSON")
             }
         }
-    }
+    }*/
 
     // Trata erros na requisição ao WS
     inner class ErroListener : Response.ErrorListener {
